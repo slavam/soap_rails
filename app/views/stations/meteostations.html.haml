@@ -1,0 +1,12 @@
+.container
+  %h1 Метеостанции
+  %table{class: "table table-hover"}
+    %thead
+      %tr
+        %th Название
+        %th Код
+    %tbody
+      -@meteostations.each do |m| 
+        %tr
+          %td= m[:name]
+          %td= m[:index]
