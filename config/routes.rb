@@ -7,4 +7,8 @@ Rails.application.routes.draw do
   get 'stations/meteostations', to: 'stations#meteostations'
   get 'stations/hydroposts', to: 'stations#hydroposts'
   resources :stations
+  get 'observations/observations', to: 'observations#observations'
+  resources :observations
+  get 'conservations/save_hydro_data', to: 'conservations#save_hydro_data'
+  resources :conservations
 end
