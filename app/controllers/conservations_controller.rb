@@ -182,6 +182,38 @@ class ConservationsController < ApplicationController
         block: packet_id
       }
     end
+    if params["ip0"].present?
+      local_id+=1
+      packet_id=local_id
+      item<<{
+        id: local_id,
+        "rec_flag" => 1,
+        code: 360110, 
+        proc: 21,
+        period: 1,
+      }
+      ip_keys = params.keys.grep(/ip/)
+      ip_keys.each{|k| 
+        local_id += 1
+        item << groups15_16(packet_id,local_id,params[k],13200)
+      }
+    end
+    if params["wb0"].present?
+      local_id+=1
+      packet_id=local_id
+      item<<{
+        id: local_id,
+        "rec_flag" => 1,
+        code: 360111, 
+        proc: 21,
+        period: 1,
+      }
+      wb_keys = params.keys.grep(/wb/)
+      wb_keys.each{|k| 
+        local_id += 1
+        item << groups15_16(packet_id,local_id,params[k],13201)
+      }
+    end
     Rails.logger.debug("My object+++++++++++++++++: #{params.inspect}")
     client = Savon.client(wsdl: 'http://10.54.1.30:8650/wsdl', env_namespace: 'SOAP-ENV')
     message = {user: 'test', pass: 'test', report: {station: params['hydroPostCode'], "meas_time_utc" => Time.now.strftime("%Y-%m-%d")+'T05:00', "syn_hour_utc"=>'05:00'},
@@ -193,6 +225,56 @@ class ConservationsController < ApplicationController
       render json: {response: save_stats}
     end
   end
+  private
+    def groups15_16(packet_id,id,value,code)
+      ret = {
+        id: id,
+        "rec_flag" => 3,
+        code: code,
+        units: "code table",
+        value: value,
+        proc: 0,
+        period: 0,
+        block: packet_id
+      }
+    end
+
+    def water_body(packet_id,id,value)
+      ret = {
+        id: id,
+        "rec_flag" => 3,
+        code: 13201,
+        units: "code table",
+        value: value,
+        proc: 0,
+        period: 0,
+        block: packet_id
+      }
+    end
+
+    "value": "23",
+        "station": 83028,
+        "place": null,
+        "lat": null,
+        "lon": null,
+        "stream": 0,
+        "code": 13201,
+        "unit": "code table",
+        "message_id": 177,
+        "source": 1500,
+        "packet": 3860,
+        "created_at": 1701324601,
+        "qlty": null,
+        "alarm": null,
+        "bseq": 360111,
+        "rec_flag": 3,
+        "proc": 0,
+        "period": 0,
+        "pkind": null,
+        "height": null,
+        "sens_type": null,
+        "sens_id": null,
+        "meas_hash": -712496965
 end
 
 # hydroData = {
