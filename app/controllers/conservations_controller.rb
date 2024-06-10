@@ -219,8 +219,82 @@ class ConservationsController < ApplicationController
     message = {user: 'test', pass: 'test', report: {station: params['hydroPostCode'], "meas_time_utc" => Time.now.strftime("%Y-%m-%d")+'T05:00', "syn_hour_utc"=>'05:00'},
       'DataList':{item: item}}
     response = client.call(:set_data, message: message)
-    if response.success?
-      save_stats = response.body[:set_data_response]
+    if params["wcDate"].present?
+      item = []
+      local_id = 1
+      packet_id = local_id
+      item << {
+        id: local_id,
+        "rec_flag" => 1,
+        code: 360109,
+      }
+      local_id += 1
+      item << {
+        id: local_id,
+        "rec_flag" => 4,
+        code: 4194,
+        units: 'ccitt ia5',
+        value: params["wcDate"]+' '+params["wcHour"].rjust(2, '0')+':00:00',
+        block: packet_id
+      }
+      local_id += 1
+      item << {
+        id: local_id,
+        "rec_flag" => 4,
+        code: 4002,
+        units: 'mon',
+        value: params["wcDate"][5,2],
+        block: packet_id
+      }
+      local_id += 1
+      packet_id = local_id
+      item << {
+        id: local_id,
+        "rec_flag" => 1,
+        code: 360109,
+      }
+      local_id += 1
+      item << {
+        id: local_id,
+        "rec_flag" => 3,
+        code: 13205,
+        units: 'm',
+        value: (params["wcWaterLevel"].to_f/100).round(2),
+        block: packet_id
+      }
+      local_id += 1
+      item << {
+        id: local_id,
+        "rec_flag" => 3,
+        code: 13193,
+        units: 'm3/s',
+        value: params["waterConsumption"],
+        block: packet_id
+      }
+      local_id += 1
+      item << {
+        id: local_id,
+        "rec_flag" => 3,
+        code: 13207,
+        units: 'm2',
+        value: params["riverArea"],
+        block: packet_id
+      }
+      local_id += 1
+      item << {
+        id: local_id,
+        "rec_flag" => 3,
+        code: 13208,
+        units: 'm',
+        value: (params["maxDepth"].to_f/100).round(2),
+        block: packet_id
+      }
+      message = {user: 'test', pass: 'test', report: {station: params['hydroPostCode'], "meas_time_utc" => params["wcDate"]+'T'+(params["wcHour"].to_i-3).to_s.rjust(2, '0')+':00:00', "syn_hour_utc"=>"#{params["wcHour"].to_i-3}:00"},
+      'DataList':{item: item}}
+    end
+    response_water_consumption = client.call(:set_data, message: message)
+    if (response.success?) || (response_water_consumption.success?)
+      save_stats = {response: response.body[:set_data_response], response_water_consumption: response_water_consumption.body[:set_data_response]}
       Rails.logger.debug("My object+++++++++++++++++: #{save_stats.inspect}")
       render json: {response: save_stats}
     end
@@ -239,42 +313,6 @@ class ConservationsController < ApplicationController
       }
     end
 
-    def water_body(packet_id,id,value)
-      ret = {
-        id: id,
-        "rec_flag" => 3,
-        code: 13201,
-        units: "code table",
-        value: value,
-        proc: 0,
-        period: 0,
-        block: packet_id
-      }
-    end
-
-    "value": "23",
-        "station": 83028,
-        "place": null,
-        "lat": null,
-        "lon": null,
-        "stream": 0,
-        "code": 13201,
-        "unit": "code table",
-        "message_id": 177,
-        "source": 1500,
-        "packet": 3860,
-        "created_at": 1701324601,
-        "qlty": null,
-        "alarm": null,
-        "bseq": 360111,
-        "rec_flag": 3,
-        "proc": 0,
-        "period": 0,
-        "pkind": null,
-        "height": null,
-        "sens_type": null,
-        "sens_id": null,
-        "meas_hash": -712496965
 end
 
 # hydroData = {
