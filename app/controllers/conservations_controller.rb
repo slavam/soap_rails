@@ -290,15 +290,44 @@ class ConservationsController < ApplicationController
         block: packet_id
       }
       message = {user: 'test', pass: 'test', report: {station: params['hydroPostCode'], "meas_time_utc" => params["wcDate"]+'T'+(params["wcHour"].to_i-3).to_s.rjust(2, '0')+':00:00', "syn_hour_utc"=>"#{params["wcHour"].to_i-3}:00"},
-      'DataList':{item: item}}
+        'DataList':{item: item}}
+      response_water_consumption = client.call(:set_data, message: message)
     end
-    response_water_consumption = client.call(:set_data, message: message)
-    if (response.success?) || (response_water_consumption.success?)
-      save_stats = {response: response.body[:set_data_response], response_water_consumption: response_water_consumption.body[:set_data_response]}
+    
+    if (response.success?)  # || (response_water_consumption.present? && response_water_consumption.success)
+      save_stats = {response: response.body[:set_data_response], response_water_consumption: response_water_consumption.present? ? response_water_consumption.body[:set_data_response]:nil}
+      if params['telegram'].present?
+        save_stats[:message] = save_telegram(params['telegram'])
+      end
       Rails.logger.debug("My object+++++++++++++++++: #{save_stats.inspect}")
       render json: {response: save_stats}
     end
   end
+  
+    # HHZZ 83048 19082 10130 20000 96606 10130 20480 31154 40034 51810=
+    def save_telegram telegram
+      posts = [nil,83028,83035,83056,83060,83068,83074,83083,83478,83040,83036,83045,83050,83048,83026,78301,78413,78421,78427,78430,78434,78436]
+      uri = URI('http://localhost:3002/hydro_observations/create_hydro_telegram')
+      http = Net::HTTP.new(uri.host, uri.port)
+      req = Net::HTTP::Post.new(uri.path, initheader = {'Content-Type' =>'application/json'})
+      param = {hydro_observation:
+        {
+          hydro_type: telegram[0,4], #'HHZZ',
+          hydro_post_id: posts.index(telegram[5,5].to_i),
+          hour_obs: telegram[13,2],
+          date_observation: Time.now.strftime('%Y-%m-%d'),
+          content_factor: telegram[15],
+          telegram: telegram[5..]
+        },
+        date: Time.now.strftime('%Y-%m-%d'),
+        input_mode: "normal"
+      }.to_json
+      req.body = param
+      res = http.request(req)
+      # Rails.logger.debug("My object+++++++++++++++++: #{res.body}")
+      return JSON.parse(res.body)["errors"][0]
+      # return "Done"
+    end
   private
     def groups15_16(packet_id,id,value,code)
       ret = {

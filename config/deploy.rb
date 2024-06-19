@@ -5,7 +5,7 @@ set :application, "soap_rails"
 set :repo_url, "https://github.com/slavam/soap_rails.git"
 
 # Default branch is :master
-# ask :branch, `git rev-parse --abbrev-ref HEAD`.chomp
+ask :branch, `git rev-parse --abbrev-ref HEAD`.chomp
 
 # Default deploy_to directory is /var/www/my_app_name
 set :deploy_to, "/home/morgachev/soap_rails"
@@ -39,3 +39,4 @@ append :linked_dirs, 'log', 'tmp/pids', 'tmp/cache', 'tmp/sockets', 'vendor/bund
 
 # Uncomment the following to require manually verifying the host key before first deploy.
 # set :ssh_options, verify_host_key: :secure
+set :passenger_environment_variables, { 'PASSENGER_INSTANCE_REGISTRY_DIR' => '/tmp' }
