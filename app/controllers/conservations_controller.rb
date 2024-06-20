@@ -307,7 +307,9 @@ class ConservationsController < ApplicationController
     # HHZZ 83048 19082 10130 20000 96606 10130 20480 31154 40034 51810=
     def save_telegram telegram
       posts = [nil,83028,83035,83056,83060,83068,83074,83083,83478,83040,83036,83045,83050,83048,83026,78301,78413,78421,78427,78430,78434,78436]
-      uri = URI('http://localhost:3002/hydro_observations/create_hydro_telegram')
+      # uri = URI('http://localhost:3002/hydro_observations/create_hydro_telegram')
+      # uri = URI('http://31.133.32.14:8080/hydro_observations/create_hydro_telegram')
+      uri = URI('http://10.54.1.6:8080/hydro_observations/create_hydro_telegram')
       http = Net::HTTP.new(uri.host, uri.port)
       req = Net::HTTP::Post.new(uri.path, initheader = {'Content-Type' =>'application/json'})
       param = {hydro_observation:
