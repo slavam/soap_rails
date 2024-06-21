@@ -197,6 +197,11 @@ class ConservationsController < ApplicationController
         local_id += 1
         item << groups15_16(packet_id,local_id,params[k],13200)
       }
+      ii_keys = params.keys.grep(/ii/)
+      ii_keys.each{|k| 
+        local_id += 1
+        item << groups15_16_intens(packet_id,local_id,params[k],13202)
+      }
     end
     if params["wb0"].present?
       local_id+=1
@@ -212,6 +217,11 @@ class ConservationsController < ApplicationController
       wb_keys.each{|k| 
         local_id += 1
         item << groups15_16(packet_id,local_id,params[k],13201)
+      }
+      wi_keys = params.keys.grep(/wi/)
+      wi_keys.each{|k| 
+        local_id += 1
+        item << groups15_16_intens(packet_id,local_id,params[k],13203)
       }
     end
     Rails.logger.debug("My object+++++++++++++++++: #{params.inspect}")
@@ -343,7 +353,38 @@ class ConservationsController < ApplicationController
         block: packet_id
       }
     end
-
+    def groups15_16_intens(packet_id,id,value,code)
+      ret = {
+        id: id,
+        "rec_flag" => 4,
+        code: code,
+        units: "%",
+        value: value.to_i*10,
+        proc: 0,
+        period: 0,
+        block: packet_id
+      } 
+    end
+    # "value": "50",
+    #     "station": 83028,
+    #     "place": null,
+    #     "lat": null,
+    #     "lon": null,
+    #     "stream": 0,
+    #     "code": 13203,
+    #     "unit": "%",
+    #     "message_id": 177,
+    #     "source": 1500,
+    #     "packet": 3861,
+    #     "created_at": 1701324601,
+    #     "qlty": null,
+    #     "alarm": null,
+    #     "bseq": 360111,
+    #     "rec_flag": 4,
+    #     "proc": 0,
+    #     "period": 0,
+    #     "pkind": null,
+    #     "height": null
 end
 
 # hydroData = {
