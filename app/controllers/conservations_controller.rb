@@ -138,12 +138,12 @@ class ConservationsController < ApplicationController
       }
     end
     if params["precipitation"].present?
-      if params["precipitation"]=='000'
-        val = "-0.1"
-      elsif (params["precipitation"].to_i>=990) && (params["precipitation"].to_i<=999)
-        val = ((params["precipitation"].to_i-990).to_f/10).round(1)
-      else
+      if(params["precipitation"].to_i<990)
         val = params["precipitation"]
+      elsif (params["precipitation"].to_i==990)
+        val = "-0.1"
+      else
+        val = ((params["precipitation"].to_i-990).to_f/10).round(1)
       end
       local_id+=1
       packet_id=local_id
