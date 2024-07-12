@@ -6,15 +6,7 @@ class ConservationsController < ApplicationController
     headers['Access-Control-Request-Method'] = '*'
     headers['Access-Control-Allow-Headers'] = 'Origin, X-Requested-With, Content-Type, Accept, Authorization'
   end
-  def save_hydro_data
-    absolute_zero = 273.15
-    code_base = {
-      "rec_flag" => 1,
-      proc: 21,
-      period: 1,
-    }
-    code_360101 = code_base.merge({code: 360101, pkind: 10})
-    
+  def water_level_and_deviation_items(wl_value, wld_value)
     water_level ={
       "rec_flag" => 3,
       code: 13205,
@@ -30,8 +22,15 @@ class ConservationsController < ApplicationController
       period: 86400,
       pkind: 4,
     }
-    code_360103=code_base.merge(code: 360103)
-    
+    @local_id += 1
+    packet_id = @local_id
+    @item << Conservation::CBASE.merge({code: 360101, pkind: 10, id: @local_id})
+    @local_id += 1
+    @item << water_level.merge(id: @local_id, value: wl_value, block: packet_id)
+    @local_id += 1
+    @item << water_level_deviation.merge(id: @local_id, value: wl_value, block: packet_id)
+  end
+  def water_temperature_item(wt_value)
     water_temperature={
       "rec_flag" => 3,
       code: 13082,
@@ -39,21 +38,31 @@ class ConservationsController < ApplicationController
       proc: 0,
       period: 0,
     }
-    code_360041=code_base.merge(code: 360041)
-    
+    @local_id += 1
+    packet_id = @local_id
+    @item << Conservation::CBASE.merge(code: 360103,id: @local_id)
+    @local_id += 1
+    water_temperature[:id] = @local_id
+    water_temperature[:value] = wt_value
+    water_temperature[:block] = packet_id
+    @item << water_temperature
+  end
+  def air_temperature_item(at_value)
     air_temperature={
-      # id: local_id,
       "rec_flag" => 3,
       code: 12101,
       units: 'k',
-      # value: (params['airTemperature'].to_f + absolute_zero).round(2),
       height: 2,
       proc: 0,
       period: 0,
-      # block: packet_id
     }
-    code_360110=code_base.merge(code: 360110)
-    
+    @local_id += 1
+    packet_id = @local_id
+    @item << Conservation::CBASE.merge(id: @local_id, code: 360041)
+    @local_id += 1
+    @item << air_temperature.merge(id: @local_id, value: at_value, block: packet_id)
+  end
+  def ice_thickness_item(it_value)
     ice_thickness = {
       "rec_flag" => 3,
       code: 13115,
@@ -61,6 +70,13 @@ class ConservationsController < ApplicationController
       proc: 0,
       period: 0,
     }
+    @local_id+=1
+    packet_id=@local_id
+    @item<< Conservation::CBASE.merge(id: @local_id, code: 360110)
+    @local_id += 1
+    @item << ice_thickness.merge(id: @local_id, value: it_value, block: packet_id)
+  end
+  def snow_thickness_item(st_value)
     snow_thickness={
       "rec_flag" => 3,
       code: 13013,
@@ -68,7 +84,13 @@ class ConservationsController < ApplicationController
       proc: 0,
       period: 0,
     }
-    code_360065=code_base.merge(code: 360065)
+    @local_id+=1
+    packet_id=@local_id
+    @item<< Conservation::CBASE.merge(id: @local_id, code: 360110)
+    @local_id += 1
+    @item << snow_thickness.merge(id: @local_id, value: st_value, block: packet_id)
+  end
+  def precipitation_and_duration_items(p_value, pd_value)
     precipitation = {
       "rec_flag" => 3,
       code: 13011,
@@ -87,69 +109,34 @@ class ConservationsController < ApplicationController
       pkind: 4,
       height: 2,
     }
+    @local_id+=1
+    packet_id=@local_id
+    @item << Conservation::CBASE.merge(id: @local_id, code: 360065)
+    @local_id += 1
+    @item << precipitation(id: @local_id, value: p_value, block: packet_id)
+    @local_id += 1
+    @item << duration_precipitation.merge(id: @local_id, value: pd_value, block: packet_id)
+  end
 
-    item = []
-    local_id = 0
+  def save_hydro_data
+    absolute_zero = 273.15
+    @item = []
+    @local_id = 0
     packet_id = 0
     if params['waterLevel'].present?
-      local_id += 1
-      packet_id = local_id
-      code_360101[:id] = local_id
-      item << code_360101
-      local_id += 1
-      water_level[:id] = local_id
-      water_level[:value] = params['waterLevel'].to_f/100
-      water_level[:block] = packet_id
-      item << water_level
-      local_id += 1
-      water_level_deviation[:id] = local_id
-      water_level_deviation[:value] = params['waterLevelDeviation'].to_f/100
-      water_level_deviation[:block] = packet_id
-      item << water_level_deviation
+      water_level_and_deviation_items(params['waterLevel'].to_f/100, params['waterLevelDeviation'].to_f/100)
     end
     if params['waterTemperature'].present?
-      local_id += 1
-      packet_id = local_id
-      code_360103[:id]=local_id
-      item << code_360103
-      local_id += 1
-      water_temperature[:id] = local_id
-      water_temperature[:value] = (params['waterTemperature'].to_f + absolute_zero).round(2)
-      water_temperature[:block] = packet_id
-      item << water_temperature
+      water_temperature_item((params['waterTemperature'].to_f + absolute_zero).round(2))
     end
     if params['airTemperature'].present?
-      local_id += 1
-      packet_id = local_id
-      code_360041[:id] = local_id
-      item << code_360041
-      local_id += 1
-      air_temperature[:id] = local_id
-      air_temperature[:value] = (params['airTemperature'].to_f + absolute_zero).round(2)
-      air_temperature[:block] = packet_id
-      item << air_temperature
+      air_temperature_item((params['airTemperature'].to_f + absolute_zero).round(2))
     end
     if params['iceThickness'].present?
-      local_id+=1
-      packet_id=local_id
-      code_360110[:id] =local_id
-      item<< code_360110
-      local_id += 1
-      ice_thickness[:id] = local_id
-      ice_thickness[:value] = (params['iceThickness'].to_f/100).round(2)
-      ice_thickness[block] = packet_id
-      item << ice_thickness
+      ice_thickness_item((params['iceThickness'].to_f/100).round(2))
     end
     if params['snowThickness'].present?
-      local_id+=1
-      packet_id=local_id
-      code_360110[:id] =local_id
-      item<< code_360110
-      local_id += 1
-      snow_thickness[:id] = local_id
-      snow_thickness[:value] = (params['snowThickness'].to_f/100).round(2)
-      snow_thickness[:block] = packet_id
-      item << snow_thickness
+      snow_thickness_item((params['snowThickness'].to_f/100).round(2))
     end
     if params["precipitation"].present?
       if(params["precipitation"].to_i<990)
@@ -159,125 +146,102 @@ class ConservationsController < ApplicationController
       else
         val = ((params["precipitation"].to_i-990).to_f/10).round(1)
       end
-      local_id+=1
-      packet_id=local_id
-      code_360065[:id] = local_id
-      item << code_360065
-      local_id += 1
-      precipitation[:id] = local_id
-      precipitation[:value] = val
-      precipitation[:block] = packet_id
-      item << precipitation
-        
       interval = ['0','60','180','360','720']
-      local_id += 1
-      duration_precipitation[:id] = local_id
-      duration_precipitation[:value] = interval[params["durationPrecipitation"].to_i]
-      duration_precipitation[:block] = packet_id
-      item << duration_precipitation
+      precipitation_and_duration_items(val,interval[params["durationPrecipitation"].to_i])
+      
     end
     if params["ip0"].present?
-      local_id+=1
-      packet_id=local_id
-      code_360110[:id] =local_id
-      item<<code_360110
+      @local_id+=1
+      packet_id=@local_id
+      @item<< Conservation::CBASE.merge(id: @local_id, code: 360110)
       ip_keys = params.keys.grep(/ip/)
       ip_keys.each{|k| 
-        local_id += 1
-        item << groups15_16(packet_id,local_id,params[k],13200)
+        @local_id += 1
+        @item << groups15_16(packet_id,@local_id,params[k],13200)
       }
       ii_keys = params.keys.grep(/ii/)
       ii_keys.each{|k| 
-        local_id += 1
-        item << groups15_16_intens(packet_id,local_id,params[k],13202)
+        @local_id += 1
+        @item << groups15_16_intens(packet_id,@local_id,params[k],13202)
       }
     end
     if params["wb0"].present?
-      local_id+=1
-      packet_id=local_id
-      code_360110[:id] =local_id
-      item<<code_360110
+      @local_id+=1
+      packet_id=@local_id
+      @item << Conservation::CBASE.merge(id: @local_id, code: 360110)
       wb_keys = params.keys.grep(/wb/)
       wb_keys.each{|k| 
-        local_id += 1
-        item << groups15_16(packet_id,local_id,params[k],13201)
+        @local_id += 1
+        @item << groups15_16(packet_id,@local_id,params[k],13201)
       }
       wi_keys = params.keys.grep(/wi/)
       wi_keys.each{|k| 
-        local_id += 1
-        item << groups15_16_intens(packet_id,local_id,params[k],13203)
+        @local_id += 1
+        @item << groups15_16_intens(packet_id,@local_id,params[k],13203)
       }
     end
 
     Rails.logger.debug("My object+++++++++++++++++: #{params.inspect}")
     client = Savon.client(wsdl: 'http://10.54.1.30:8650/wsdl', env_namespace: 'SOAP-ENV')
     message = {user: 'test', pass: 'test', report: {station: params['hydroPostCode'], "meas_time_utc" => Time.now.strftime("%Y-%m-%d")+'T05:00', "syn_hour_utc"=>'05:00'},
-      'DataList':{item: item}}
+      'DataList':{item: @item}}
     response = client.call(:set_data, message: message)
     if params["wcDate"].present?
-      item = []
-      local_id = 1
-      packet_id = local_id
-      item << {
-        id: local_id,
-        "rec_flag" => 1,
-        code: 360109,
-      }
-      local_id += 1
-      item << {
-        id: local_id,
+      @item = []
+      @local_id = 1
+      packet_id = @local_id
+      @item << {id: @local_id,"rec_flag" => 1,code: 360109}
+      @local_id += 1
+      @item << {
+        id: @local_id,
         "rec_flag" => 4,
         code: 4194,
         units: 'ccitt ia5',
         value: params["wcDate"]+' '+params["wcHour"].rjust(2, '0')+':00:00',
         block: packet_id
       }
-      local_id += 1
-      item << {
-        id: local_id,
+      @local_id += 1
+      @item << {
+        id: @local_id,
         "rec_flag" => 4,
         code: 4002,
         units: 'mon',
         value: params["wcDate"][5,2],
         block: packet_id
       }
-      local_id += 1
-      packet_id = local_id
-      item << {
-        id: local_id,
-        "rec_flag" => 1,
-        code: 360109,
-      }
-      local_id += 1
-      item << {
-        id: local_id,
+      @local_id += 1
+      packet_id = @local_id
+      @item << {id: @local_id,"rec_flag" => 1,code: 360109}
+      @local_id += 1
+      @item << {
+        id: @local_id,
         "rec_flag" => 3,
         code: 13205,
         units: 'm',
         value: (params["wcWaterLevel"].to_f/100).round(2),
         block: packet_id
       }
-      local_id += 1
-      item << {
-        id: local_id,
+      @local_id += 1
+      @item << {
+        id: @local_id,
         "rec_flag" => 3,
         code: 13193,
         units: 'm3/s',
         value: params["waterConsumption"],
         block: packet_id
       }
-      local_id += 1
-      item << {
-        id: local_id,
+      @local_id += 1
+      @item << {
+        id: @local_id,
         "rec_flag" => 3,
         code: 13207,
         units: 'm2',
         value: params["riverArea"],
         block: packet_id
       }
-      local_id += 1
-      item << {
-        id: local_id,
+      @local_id += 1
+      @item << {
+        id: @local_id,
         "rec_flag" => 3,
         code: 13208,
         units: 'm',
@@ -285,114 +249,30 @@ class ConservationsController < ApplicationController
         block: packet_id
       }
       message = {user: 'test', pass: 'test', report: {station: params['hydroPostCode'], "meas_time_utc" => params["wcDate"]+'T'+(params["wcHour"].to_i-3).to_s.rjust(2, '0')+':00:00', "syn_hour_utc"=>"#{params["wcHour"].to_i-3}:00"},
-        'DataList':{item: item}}
+        'DataList':{item: @item}}
       response_water_consumption = client.call(:set_data, message: message)
     end
       # section 2
-# 
-# ret["obsDate2"+j]=obsDate
-#     ret['waterLevel2'+j]=wl
-#     ret['wlDeviation2'+j]=wld
-#     if(waterTemp)
-#       ret['waterTemp2'+j]=waterTemp
-#     if(airTemp)
-#       ret['airTemperature2'+j]=airTemp
-#     if(ipChar2[0]!==null)
-#       for (let i = 0; i < 5; i++) {
-#         if(ipChar2[i]!==null){
-#           ret = {...ret,[`ip${i*2}`]:ipChar2[i]}
-#           if(ipAddon2[i]>10){ // character
-#             if(ipAddon2[i]!==ipChar2[i])
-#               ret = {...ret,[`ip${i*2+1}`]:ipAddon2[i]}
-#           }else //intense
-#             ret = {...ret,[`ii${i*2+1}`]:ipAddon2[i]}
-#         }
-#       }
-#     if(wbChar2[0]!==null)
-#       for (let i = 0; i < 5; i++) {
-#         if(wbChar2[i]!==null){
-#           ret = {...ret,[`wb${i*2}`]:wbChar2[i]}
-#           if(wbAddon2[i]>10){
-#             if(wbAddon2[i]!==wbChar2[i])
-#               ret = {...ret,[`wb${i*2+1}`]:wbAddon2[i]}
-#           }else
-#             ret = {...ret,[`wi${i*2+1}`]:wbAddon2[i]}
-#         }
-#       }
-#     if(iceThickness!==null)
-#       hydroData["iThickness2"+j]=iceThickness
-#     if(snowThickness!==null)
-#       hydroData["sThickness2"+j]=snowThickness
-#     if(precipitation!==null)
-#       hydroData["precipitation2"+j]=precipitation
-#     if(pDuration!==null)
-#       hydroData["pDuration2"+j]=pDuration
-# 
 
     if params["obsDate21"].present?
       # section21 = params["section21"].tr('\\','')
       # Rails.logger.debug("My object>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>: #{section21.inspect}")
-      item = []
-      local_id = 0
+      @item = []
+      @local_id = 0
       if params['waterLevel21'].present?
-        local_id += 1
-        packet_id = local_id
-        code_360101[:id] = local_id
-        item << code_360101
-        local_id += 1
-        water_level[:id] = local_id
-        water_level[:value] = params['waterLevel21'].to_f/100
-        water_level[:block] = packet_id
-        item << water_level
-        local_id += 1
-        water_level_deviation[:id] = local_id
-        water_level_deviation[:value] = params['wlDeviation21'].to_f/100
-        water_level_deviation[:block] = packet_id
-        item << water_level_deviation
+        water_level_and_deviation_items(params['waterLevel21'].to_f/100,params['wlDeviation21'].to_f/100)
       end
       if params['waterTemp21'].present?
-        local_id += 1
-        packet_id = local_id
-        code_360103[:id]=local_id
-        item << code_360103
-        local_id += 1
-        water_temperature[:id] = local_id
-        water_temperature[:value] = (params['waterTemp21'].to_f + absolute_zero).round(2)
-        water_temperature[:block] = packet_id
-        item << water_temperature
+        water_temperature_item((params['waterTemp21'].to_f + absolute_zero).round(2))
       end
       if params['airTemperature21'].present?
-        local_id += 1
-        packet_id = local_id
-        code_360041[:id] = local_id
-        item << code_360041
-        local_id += 1
-        air_temperature[:id] = local_id
-        air_temperature[:value] = (params['airTemperature21'].to_f + absolute_zero).round(2)
-        air_temperature[:block] = packet_id
-        item << air_temperature
+        air_temperature_item((params['airTemperature21'].to_f + absolute_zero).round(2))
       end
       if params['iThickness21'].present?
-        local_id+=1
-        packet_id=local_id
-        code_360110[:id] =local_id
-        item<< code_360110
-        local_id += 1
-        ice_thickness[:id] = local_id
-        ice_thickness[:value] = (params['iThickness21'].to_f/100).round(2)
-        ice_thickness[block] = packet_id
-        item << ice_thickness
+        ice_thickness_item((params['iThickness21'].to_f/100).round(2))
       end
       if params['sThickness21'].present?
-        local_id+=1
-        packet_id=local_id
-        code_360110[:id] =local_id
-        item<< code_360110
-        local_id += 1
-        snow_thickness[:id] = local_id
-        snow_thickness[:value] = (params['sThickness21'].to_f/100).round(2)
-        snow_thickness[:block] = packet_id
-        item << snow_thickness
+        snow_thickness_item((params['sThickness21'].to_f/100).round(2))
       end
       if params["precipitation21"].present?
         if(params["precipitation21"].to_i<990)
@@ -402,58 +282,42 @@ class ConservationsController < ApplicationController
         else
           val = ((params["precipitation21"].to_i-990).to_f/10).round(1)
         end
-        local_id+=1
-        packet_id=local_id
-        code_360065[:id] = local_id
-        item << code_360065
-        local_id += 1
-        precipitation[:id] = local_id
-        precipitation[:value] = val
-        precipitation[:block] = packet_id
-        item << precipitation
-          
         interval = ['0','60','180','360','720']
-        local_id += 1
-        duration_precipitation[:id] = local_id
-        duration_precipitation[:value] = interval[params["pDuration21"].to_i]
-        duration_precipitation[:block] = packet_id
-        item << duration_precipitation
+        precipitation_and_duration_items(val, interval[params["pDuration21"].to_i])
       end
       if params["ip0"].present?
-        local_id+=1
-        packet_id=local_id
-        code_360110[:id] =local_id
-        item<<code_360110
+        @local_id+=1
+        packet_id=@local_id
+        @item << Conservation::CBASE.merge(id: @local_id, code: 360110)
         ip_keys = params.keys.grep(/ip/)
         ip_keys.each{|k| 
-          local_id += 1
-          item << groups15_16(packet_id,local_id,params[k],13200)
+          @local_id += 1
+          @item << groups15_16(packet_id,@local_id,params[k],13200)
         }
         ii_keys = params.keys.grep(/ii/)
         ii_keys.each{|k| 
-          local_id += 1
-          item << groups15_16_intens(packet_id,local_id,params[k],13202)
+          @local_id += 1
+          @item << groups15_16_intens(packet_id,@local_id,params[k],13202)
         }
       end
       if params["wb0"].present?
-        local_id+=1
-        packet_id=local_id
-        code_360110[:id] =local_id
-        item<<code_360110
+        @local_id+=1
+        packet_id=@local_id
+        @item << Conservation::CBASE.merge(id: @local_id, code: 360110)
         wb_keys = params.keys.grep(/wb/)
         wb_keys.each{|k| 
-          local_id += 1
-          item << groups15_16(packet_id,local_id,params[k],13201)
+          @local_id += 1
+          @item << groups15_16(packet_id,@local_id,params[k],13201)
         }
         wi_keys = params.keys.grep(/wi/)
         wi_keys.each{|k| 
-          local_id += 1
-          item << groups15_16_intens(packet_id,local_id,params[k],13203)
+          @local_id += 1
+          @item << groups15_16_intens(packet_id,@local_id,params[k],13203)
         }
       end
       # Rails.logger.debug("My object>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>: #{params['obsDate21']+'T05:00'}")
       message = {user: 'test', pass: 'test', report: {station: params['hydroPostCode'], "meas_time_utc" => params['obsDate21']+'T05:00', "syn_hour_utc"=>'05:00'},
-        'DataList':{item: item}}
+        'DataList':{item: @item}}
       response_section21 = client.call(:set_data, message: message)
     end
     
@@ -523,36 +387,42 @@ class ConservationsController < ApplicationController
     end
 end
 
-# hydroData = {
-#     //   'Report': {
-#     //     station: hydroPostCode,
-#     //     meas_time_utc: `${currDate.toISOString().split('T')[0]}T${term}:00:00`
-#     //   },
-#     //   data_list: {
-#     //     item: [
-#     //       {
-#     //         id: 1,
-#     //         rec_flag: 1,
-#     //         code: 360101,
-#     //         proc: 21,
-#     //         period: 1,
-#     //         pkind: 10
-#     //       },
-#     //       { // water level
-#     //         id: 2,
-#     //         rec_flag: 3,
-#     //         code: 13205,
-#     //         unit: 'm',
-#     //         value: waterLevel/100,
-#     //         block:1
-#     //       }
-# SetDataResponse xmlns:NS1="urn:CSDNIntf-ICSDN">
-#    <SuccessCount>23</SuccessCount>
-#    <FailedCount>0</FailedCount>
-#    <DetailMessage
+# 
+# ret["obsDate2"+j]=obsDate
+#     ret['waterLevel2'+j]=wl
+#     ret['wlDeviation2'+j]=wld
+#     if(waterTemp)
+#       ret['waterTemp2'+j]=waterTemp
+#     if(airTemp)
+#       ret['airTemperature2'+j]=airTemp
+#     if(ipChar2[0]!==null)
+#       for (let i = 0; i < 5; i++) {
+#         if(ipChar2[i]!==null){
+#           ret = {...ret,[`ip${i*2}`]:ipChar2[i]}
+#           if(ipAddon2[i]>10){ // character
+#             if(ipAddon2[i]!==ipChar2[i])
+#               ret = {...ret,[`ip${i*2+1}`]:ipAddon2[i]}
+#           }else //intense
+#             ret = {...ret,[`ii${i*2+1}`]:ipAddon2[i]}
+#         }
+#       }
+#     if(wbChar2[0]!==null)
+#       for (let i = 0; i < 5; i++) {
+#         if(wbChar2[i]!==null){
+#           ret = {...ret,[`wb${i*2}`]:wbChar2[i]}
+#           if(wbAddon2[i]>10){
+#             if(wbAddon2[i]!==wbChar2[i])
+#               ret = {...ret,[`wb${i*2+1}`]:wbAddon2[i]}
+#           }else
+#             ret = {...ret,[`wi${i*2+1}`]:wbAddon2[i]}
+#         }
+#       }
+#     if(iceThickness!==null)
+#       hydroData["iThickness2"+j]=iceThickness
 #     if(snowThickness!==null)
-#       hydroData["snowThickness"]=snowThickness
+#       hydroData["sThickness2"+j]=snowThickness
 #     if(precipitation!==null)
-#       hydroData["precipitation"]=precipitation
-#     if(durationPrecipitation!==null)
-#       hydroData["durationPrecipitation
+#       hydroData["precipitation2"+j]=precipitation
+#     if(pDuration!==null)
+#       hydroData["pDuration2"+j]=pDuration
+#

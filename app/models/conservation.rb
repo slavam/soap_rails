@@ -1,4 +1,9 @@
 class Conservation
+  CBASE = {
+    "rec_flag" => 1,
+    proc: 21,
+    period: 1,
+  }
     # attr_accessor :conservations
     # def initialize(q_params)
     #   client = Savon.client(wsdl: 'http://10.54.1.32:8650/wsdl', env_namespace: 'SOAP-ENV')
