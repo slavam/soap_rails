@@ -113,7 +113,7 @@ class ConservationsController < ApplicationController
     packet_id=@local_id
     @item << Conservation::CBASE.merge(id: @local_id, code: 360065)
     @local_id += 1
-    @item << precipitation(id: @local_id, value: p_value, block: packet_id)
+    @item << precipitation.merge(id: @local_id, value: p_value, block: packet_id)
     @local_id += 1
     @item << duration_precipitation.merge(id: @local_id, value: pd_value, block: packet_id)
   end
