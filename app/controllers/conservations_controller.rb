@@ -168,7 +168,7 @@ class ConservationsController < ApplicationController
     if params["wb0"].present?
       @local_id+=1
       packet_id=@local_id
-      @item << Conservation::CBASE.merge(id: @local_id, code: 360110)
+      @item << Conservation::CBASE.merge(id: @local_id, code: 360111)
       wb_keys = params.keys.grep(/wb/)
       wb_keys.each{|k| 
         @local_id += 1
