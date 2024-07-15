@@ -28,7 +28,7 @@ class ConservationsController < ApplicationController
     @local_id += 1
     @item << water_level.merge(id: @local_id, value: wl_value, block: packet_id)
     @local_id += 1
-    @item << water_level_deviation.merge(id: @local_id, value: wl_value, block: packet_id)
+    @item << water_level_deviation.merge(id: @local_id, value: wld_value, block: packet_id)
   end
   def water_temperature_item(wt_value)
     water_temperature={
