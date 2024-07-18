@@ -320,11 +320,79 @@ class ConservationsController < ApplicationController
         'DataList':{item: @item}}
       response_section21 = client.call(:set_data, message: message)
     end
+# section 22
+    if params["obsDate22"].present?
+      # section21 = params["section21"].tr('\\','')
+      # Rails.logger.debug("My object>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>: #{section21.inspect}")
+      @item = []
+      @local_id = 0
+      if params['waterLevel22'].present?
+        water_level_and_deviation_items(params['waterLevel22'].to_f/100,params['wlDeviation22'].to_f/100)
+      end
+      if params['waterTemp22'].present?
+        water_temperature_item((params['waterTemp22'].to_f + absolute_zero).round(2))
+      end
+      if params['airTemperature22'].present?
+        air_temperature_item((params['airTemperature22'].to_f + absolute_zero).round(2))
+      end
+      if params['iThickness22'].present?
+        ice_thickness_item((params['iThickness22'].to_f/100).round(2))
+      end
+      if params['sThickness22'].present?
+        snow_thickness_item((params['sThickness22'].to_f/100).round(2))
+      end
+      if params["precipitation22"].present?
+        if(params["precipitation22"].to_i<990)
+          val = params["precipitation22"]
+        elsif (params["precipitation22"].to_i==990)
+          val = "-0.1"
+        else
+          val = ((params["precipitation22"].to_i-990).to_f/10).round(1)
+        end
+        interval = ['0','60','180','360','720']
+        precipitation_and_duration_items(val, interval[params["pDuration22"].to_i])
+      end
+      if params["ip0"].present?
+        @local_id+=1
+        packet_id=@local_id
+        @item << Conservation::CBASE.merge(id: @local_id, code: 360110)
+        ip_keys = params.keys.grep(/ip/)
+        ip_keys.each{|k| 
+          @local_id += 1
+          @item << groups15_16(packet_id,@local_id,params[k],13200)
+        }
+        ii_keys = params.keys.grep(/ii/)
+        ii_keys.each{|k| 
+          @local_id += 1
+          @item << groups15_16_intens(packet_id,@local_id,params[k],13202)
+        }
+      end
+      if params["wb0"].present?
+        @local_id+=1
+        packet_id=@local_id
+        @item << Conservation::CBASE.merge(id: @local_id, code: 360110)
+        wb_keys = params.keys.grep(/wb/)
+        wb_keys.each{|k| 
+          @local_id += 1
+          @item << groups15_16(packet_id,@local_id,params[k],13201)
+        }
+        wi_keys = params.keys.grep(/wi/)
+        wi_keys.each{|k| 
+          @local_id += 1
+          @item << groups15_16_intens(packet_id,@local_id,params[k],13203)
+        }
+      end
+      # Rails.logger.debug("My object>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>: #{params['obsDate21']+'T05:00'}")
+      message = {user: 'test', pass: 'test', report: {station: params['hydroPostCode'], "meas_time_utc" => params['obsDate22']+'T05:00', "syn_hour_utc"=>'05:00'},
+        'DataList':{item: @item}}
+      response_section22 = client.call(:set_data, message: message)
+    end
     
     if (response.success?)  # || (response_water_consumption.present? && response_water_consumption.success)
       save_stats = {response: response.body[:set_data_response], 
         response_water_consumption: response_water_consumption.present? ? response_water_consumption.body[:set_data_response]:nil,
-        response_section21: response_section21.present? ? response_section21.body[:set_data_response]:nil
+        response_section21: response_section21.present? ? response_section21.body[:set_data_response]:nil,
+        response_section22: response_section22.present? ? response_section22.body[:set_data_response]:nil
       }
       if params['telegram'].present?
         save_stats[:message] = save_telegram(params['telegram'])
