@@ -1,17 +1,24 @@
 class Observation
   attr_accessor :observations
   def initialize(q_params)
-    client = Savon.client(wsdl: 'http://10.54.1.32:8650/wsdl', env_namespace: 'SOAP-ENV')
+    client = Savon.client(wsdl: 'http://10.54.1.30:8650/wsdl', env_namespace: 'SOAP-ENV')
     message = {user: 'test', pass: 'test', limit: 10}
-    message.merge(q_params)
-    response = client.call(:get_data, message: message)
+    m = message.merge(q_params)
+    response = client.call(:get_data, message: m)
     if response.success?
-      @observations = response.body[:get_data_response][:data_list][:item]
+      if response.body.present? && response.body[:get_data_response].present? && response.body[:get_data_response][:data_list].present?
+        @observations = response.body[:get_data_response][:data_list][:item].is_a?(Array)? response.body[:get_data_response][:data_list][:item]:[response.body[:get_data_response][:data_list][:item]]
+      else
+        @observations = []
+      end
     end
   end
   def observations
     @observations
   end
+#  def message
+#    @message
+#  end
 end
 # • stations: 	список станций
 # • streams: 	список потоков

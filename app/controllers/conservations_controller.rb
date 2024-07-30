@@ -120,6 +120,7 @@ class ConservationsController < ApplicationController
 
   def save_hydro_data
     absolute_zero = 273.15
+    @interval = ['0','60','180','360','720']
     @item = []
     @local_id = 0
     packet_id = 0
@@ -146,8 +147,8 @@ class ConservationsController < ApplicationController
       else
         val = ((params["precipitation"].to_i-990).to_f/10).round(1)
       end
-      interval = ['0','60','180','360','720']
-      precipitation_and_duration_items(val,interval[params["durationPrecipitation"].to_i])
+      # interval = ['0','60','180','360','720']
+      precipitation_and_duration_items(val,@interval[params["durationPrecipitation"].to_i])
       
     end
     if params["ip0"].present?
@@ -282,8 +283,8 @@ class ConservationsController < ApplicationController
         else
           val = ((params["precipitation21"].to_i-990).to_f/10).round(1)
         end
-        interval = ['0','60','180','360','720']
-        precipitation_and_duration_items(val, interval[params["pDuration21"].to_i])
+        # interval = ['0','60','180','360','720']
+        precipitation_and_duration_items(val, @interval[params["pDuration21"].to_i])
       end
       if params["ip0"].present?
         @local_id+=1
@@ -349,8 +350,8 @@ class ConservationsController < ApplicationController
         else
           val = ((params["precipitation22"].to_i-990).to_f/10).round(1)
         end
-        interval = ['0','60','180','360','720']
-        precipitation_and_duration_items(val, interval[params["pDuration22"].to_i])
+        # interval = ['0','60','180','360','720']
+        precipitation_and_duration_items(val, @interval[params["pDuration22"].to_i])
       end
       if params["ip0"].present?
         @local_id+=1
@@ -402,6 +403,84 @@ class ConservationsController < ApplicationController
     end
   end
   
+  def save_hydro_storm
+    @item = []
+    @local_id = 1
+    packet_id = 1
+    @item << {"rec_flag" => 1, code: 360002, id: @local_id} #, alarm: '3'+params['phenomenonType']}
+    @local_id += 1
+    @item << {
+      id: @local_id, 
+      "rec_flag" => 3,
+      code: 20200,
+      value: '3'+params['phenomenonType'], 
+      block: packet_id
+    }
+    @local_id+=1
+    packet_id=@local_id
+    if params['waterLevel'].present?
+      water_level_and_deviation_items(params['waterLevel'].to_f/100, params['waterLevelDeviation'].to_f/100)
+    end
+    if params["ip0"].present?
+      @local_id+=1
+      packet_id=@local_id
+      @item << Conservation::CBASE.merge(id: @local_id, code: 360110)
+      ip_keys = params.keys.grep(/ip/)
+      ip_keys.each{|k| 
+        @local_id += 1
+        @item << groups15_16(packet_id,@local_id,params[k],13200)
+      }
+      ii_keys = params.keys.grep(/ii/)
+      ii_keys.each{|k| 
+        @local_id += 1
+        @item << groups15_16_intens(packet_id,@local_id,params[k],13202)
+      }
+    end
+    if params["wb0"].present?
+      @local_id+=1
+      packet_id=@local_id
+      @item << Conservation::CBASE.merge(id: @local_id, code: 360110)
+      wb_keys = params.keys.grep(/wb/)
+      wb_keys.each{|k| 
+        @local_id += 1
+        @item << groups15_16(packet_id,@local_id,params[k],13201)
+      }
+      wi_keys = params.keys.grep(/wi/)
+      wi_keys.each{|k| 
+        @local_id += 1
+        @item << groups15_16_intens(packet_id,@local_id,params[k],13203)
+      }
+    end
+    if params["precipitation"].present?
+      # if(params["precipitation"].to_i<990)
+      #   val = params["precipitation"]
+      # elsif (params["precipitation"].to_i==990)
+      #   val = "-0.1"
+      # else
+      #   val = ((params["precipitation"].to_i-990).to_f/10).round(1)
+      # end
+      val = params["precipitation"].to_i<990? params["precipitation"] : (params["precipitation"].to_i==990? "-0.1" : ((params["precipitation"].to_i-990).to_f/10).round(1)) 
+      interval = ['0','60','180','360','720']
+      precipitation_and_duration_items(val,interval[params["durationPrecipitation"].to_i])
+      
+    end
+    
+    d = Time.parse("#{params['obsDate']}T#{params['obsHour'].rjust(2,'0')}:00:00").getutc()
+    time_utc = d.strftime('%Y-%m-%dT%H:00:00')
+    client = Savon.client(wsdl: 'http://10.54.1.30:8650/wsdl', env_namespace: 'SOAP-ENV')
+    message = {user: 'test', pass: 'test', report: {station: params['hydroPostCode'], 
+    "meas_time_utc" => time_utc, "syn_hour_utc"=>time_utc[11,2]+':00', alarm: '1'},
+        'DataList':{item: @item}}
+    # Rails.logger.debug("My object+++++++++++++++++: #{@item.inspect}")        
+    response = client.call(:set_data, message: message)
+    if response.success?
+      save_stats = {response: response.body[:set_data_response]}
+      Rails.logger.debug("My object+++++++++++++++++: #{save_stats.inspect}")
+      render json: {response: save_stats}
+    else
+      render json: {response: "Error"}
+    end
+  end
     # HHZZ 83048 19082 10130 20000 96606 10130 20480 31154 40034 51810=
     def save_telegram telegram
       posts = [nil,83028,83035,83056,83060,83068,83074,83083,83478,83040,83036,83045,83050,83048,83026,78301,78413,78421,78427,78430,78434,78436]

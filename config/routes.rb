@@ -10,5 +10,6 @@ Rails.application.routes.draw do
   get 'observations/observations', to: 'observations#observations'
   resources :observations
   get 'conservations/save_hydro_data', to: 'conservations#save_hydro_data'
+  get 'conservations/save_hydro_storm', to: 'conservations#save_hydro_storm'
   resources :conservations
 end
