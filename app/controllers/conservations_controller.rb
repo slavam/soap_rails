@@ -388,12 +388,110 @@ class ConservationsController < ApplicationController
         'DataList':{item: @item}}
       response_section22 = client.call(:set_data, message: message)
     end
-    
+# section 3    
+    if params["period0"].present?
+      @item = []
+      @local_id = 1
+      packet_id = 1
+      # @item << {id:@local_id, code: 360102}
+      if params['avgWl0'].present?
+        @local_id+=1
+        packet_id=@local_id
+        @item << {id: @local_id, code: 360101}
+        @local_id += 1
+        @item << {id: @local_id, proc: 1, period: params['period0'], code:13205, value: params['avgWl0'], block: packet_id, "rec_flag": 3, pkind: 98}
+      end
+      if params['maxWl0'].present?
+        @local_id+=1
+        packet_id=@local_id
+        @item << {id: @local_id, code: 360101}
+        @local_id += 1
+        @item << {id: @local_id, proc: 2, period: params['period0'], code:13205, value: params['maxWl0'], block: packet_id, "rec_flag": 3, pkind: 98}
+        if params['maxLevelDate'].present?
+          @local_id += 1
+          @item << {
+            id: @local_id, 
+            bseq: 360101,
+            "rec_flag" => 4,
+            code: 4194,
+            value: "#{params['maxLevelDate']} #{params['maxLevelHour']}:00:00", #"2024-07-03 14:00:00",
+            unit: "ccitt ia5",
+            proc: 2,
+            period: 30,
+            pkind: 98,
+            block: @local_id-1
+          }
+        end
+      end
+      if params['minWl0'].present?
+        @local_id+=1
+        packet_id=@local_id
+        @item << {id: @local_id, code: 360101}
+        @local_id += 1
+        @item << {id: @local_id, proc: 3, period: params['period0'], code:13205, value: params['minWl0'], block: packet_id, "rec_flag": 3, pkind: 98}
+      end
+      @local_id += 1
+      @item << {
+        id: @local_id, 
+        "rec_flag" => 4,
+        bseq: 360102,
+        code: 4193,
+        value: params['period0'], 
+        unit: "code table",
+        proc: 3,
+        period: 30,
+        pkind: 98,
+        block: @local_id-1
+      }
+      message = {user: 'test', pass: 'test', report: {station: params['hydroPostCode'], "meas_time_utc" => Time.now.strftime("%Y-%m-%d")+'T05:00', "syn_hour_utc"=>'05:00'},
+        'DataList':{item: @item}}
+      response_section3 = client.call(:set_data, message: message)
+      # if params['avgWc0'].present?
+      #   @local_id+=1
+      #   packet_id=@local_id
+      #   @item << {id: @local_id, code: 360102}
+      #   @local_id += 1
+      #   @item << {id: @local_id, proc: 1, period: params['period0'], code:13193, value: params['avgWc0'], block: packet_id, "rec_flag": 3, pkind: 98}
+      # end
+      # if params['maxWc0'].present?
+      #   @local_id+=1
+      #   packet_id=@local_id
+      #   @item << {id: @local_id, code: 360102}
+      #   @local_id += 1
+      #   @item << {id: @local_id, proc: 2, period: params['period0'], code:13193, value: params['maxWc0'], block: packet_id, "rec_flag": 3, pkind: 98}
+      # end
+      # if params['minWc0'].present?
+      #   @local_id+=1
+      #   packet_id=@local_id
+      #   @item << {id: @local_id, code: 360102}
+      #   @local_id += 1
+      #   @item << {id: @local_id, proc: 3, period: params['period0'], code:13193, value: params['minWc0'], block: packet_id, "rec_flag": 3, pkind: 98}
+      # end
+      # if params['maxLevelDate'].present?
+      #   @local_id+=1
+      #   packet_id=@local_id
+      #   @item << {id:@local_id, code: 360102}
+      #   @local_id += 1
+      #   @item << {
+      #     id: @local_id, 
+      #     "rec_flag" => 4,
+      #     code: 4194,
+      #     value: "#{params['maxLevelDate']} #{params['maxLevelHour']}:00:00", #"2024-07-03 14:00:00",
+      #     unit: "ccitt ia5",
+      #     proc: 2,
+      #     period: 30,
+      #     pkind: 98,
+      #     block: packet_id
+      #   }
+      # end
+    end
+
     if (response.success?)  # || (response_water_consumption.present? && response_water_consumption.success)
       save_stats = {response: response.body[:set_data_response], 
         response_water_consumption: response_water_consumption.present? ? response_water_consumption.body[:set_data_response]:nil,
         response_section21: response_section21.present? ? response_section21.body[:set_data_response]:nil,
-        response_section22: response_section22.present? ? response_section22.body[:set_data_response]:nil
+        response_section22: response_section22.present? ? response_section22.body[:set_data_response]:nil,
+        response_section3: response_section3.present? ? response_section3.body[:set_data_response]:nil
       }
       if params['telegram'].present?
         save_stats[:message] = save_telegram(params['telegram'])
