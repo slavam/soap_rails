@@ -397,52 +397,58 @@ class ConservationsController < ApplicationController
       if params['avgWl0'].present?
         @local_id+=1
         packet_id=@local_id
-        @item << {id: @local_id, code: 360101}
+        @item << Conservation::CBASE.merge(id: @local_id, code: 360101, proc:1, pkind: 98)
         @local_id += 1
-        @item << {id: @local_id, proc: 1, period: params['period0'], code:13205, value: params['avgWl0'], block: packet_id, "rec_flag": 3, pkind: 98}
+        @item << {id: @local_id, proc: 1, period: params['period0'], 
+          code:13205, value: params['avgWl0'].to_f/100, block: packet_id, "rec_flag" => 3, pkind: 98}
       end
       if params['maxWl0'].present?
         @local_id+=1
         packet_id=@local_id
-        @item << {id: @local_id, code: 360101}
+        @item << {id: @local_id, code: 360101, "rec_flag"=>1, proc:2, period: params['period0'].to_i, pkind: 98}
         @local_id += 1
-        @item << {id: @local_id, proc: 2, period: params['period0'], code:13205, value: params['maxWl0'], block: packet_id, "rec_flag": 3, pkind: 98}
-        if params['maxLevelDate'].present?
+        @item << {id: @local_id, value: params['maxWl0'].to_f/100, code: 13205, "rec_flag"=> 3, proc: 2, period: params['period0'].to_i, block: packet_id}
+        if params['mlDate0'].present?
+          packet_id=@local_id
           @local_id += 1
           @item << {
             id: @local_id, 
-            bseq: 360101,
-            "rec_flag" => 4,
+            value: "#{params['mlDate0']} #{params['mlHour0']}:00:00",
             code: 4194,
-            value: "#{params['maxLevelDate']} #{params['maxLevelHour']}:00:00", #"2024-07-03 14:00:00",
-            unit: "ccitt ia5",
+            units: "ccitt ia5",
+            "rec_flag" => 4,
             proc: 2,
-            period: 30,
+            period: params['period0'].to_i,
             pkind: 98,
-            block: @local_id-1
+            block: packet_id
           }
+          if params['minWl0'].nil?
+            @local_id+=1
+            @item << Conservation::CBASE.merge(id: @local_id, code: 360101)
+          end
         end
       end
       if params['minWl0'].present?
         @local_id+=1
         packet_id=@local_id
-        @item << {id: @local_id, code: 360101}
+        @item << Conservation::CBASE.merge(id: @local_id, code: 360101)
         @local_id += 1
-        @item << {id: @local_id, proc: 3, period: params['period0'], code:13205, value: params['minWl0'], block: packet_id, "rec_flag": 3, pkind: 98}
+        @item << {id: @local_id, value: params['minWl0'].to_f/100, code: 13205, "rec_flag" => 3, proc: 3, period: params['period0'].to_i, block: packet_id}
       end
+      packet_id=@local_id
       @local_id += 1
       @item << {
         id: @local_id, 
-        "rec_flag" => 4,
-        bseq: 360102,
+        value: params['period0'].to_i, 
+        bseq: 360101,
         code: 4193,
-        value: params['period0'], 
-        unit: "code table",
-        proc: 3,
-        period: 30,
+        units: "code table",
+        "rec_flag" => 4,
+        period: params['period0'].to_i,
         pkind: 98,
-        block: @local_id-1
+        block: packet_id
       }
+      Rails.logger.debug("My object+++++++++++++++++: #{@item.inspect}")
       message = {user: 'test', pass: 'test', report: {station: params['hydroPostCode'], "meas_time_utc" => Time.now.strftime("%Y-%m-%d")+'T05:00', "syn_hour_utc"=>'05:00'},
         'DataList':{item: @item}}
       response_section3 = client.call(:set_data, message: message)
