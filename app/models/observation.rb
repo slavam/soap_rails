@@ -2,7 +2,9 @@ class Observation
   attr_accessor :observations
   def initialize(q_params)
     client = Savon.client(wsdl: 'http://10.54.1.30:8650/wsdl', env_namespace: 'SOAP-ENV')
-    message = {user: 'test', pass: 'test', limit: 10}
+    q_params['min_quality'].present? ?
+      message = {user: 'test', pass: 'test', limit: 10, 'min_quality'=> q_params['min_quality']}:
+      message = {user: 'test', pass: 'test', limit: 10}
     m = message.merge(q_params)
     response = client.call(:get_data, message: m)
     if response.success?

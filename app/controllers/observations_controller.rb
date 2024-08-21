@@ -17,6 +17,6 @@ class ObservationsController < ApplicationController
 
   private
     def observation_params
-      params.permit(:stations, :sources, :limit, :before, :after, :hashes, :syn_hours)
+      params.permit(:stations, :sources, :limit, :before, :after, :hashes, :syn_hours, :min_quality)
     end
 end
