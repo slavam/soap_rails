@@ -9,7 +9,7 @@ class ObservationsController < ApplicationController
   end
   def observations
     params.to_enum.to_h
-# Rails.logger.debug(">>>>>>>>>>>#{observation_params}<<<<<<<<<")
+  Rails.logger.debug(">>>>>>>>>>>#{observation_params}<<<<<<<<<")
 #    p = params.present? ? params : {}
     o = Observation.new(observation_params)
     render json: o.observations.present? ? o.observations : []

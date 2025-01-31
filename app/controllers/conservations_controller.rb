@@ -321,7 +321,7 @@ class ConservationsController < ApplicationController
         'DataList':{item: @item}}
       response_section21 = client.call(:set_data, message: message)
     end
-# section 22
+    # section 22
     if params["obsDate22"].present?
       # section21 = params["section21"].tr('\\','')
       # Rails.logger.debug("My object>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>: #{section21.inspect}")
@@ -388,7 +388,7 @@ class ConservationsController < ApplicationController
         'DataList':{item: @item}}
       response_section22 = client.call(:set_data, message: message)
     end
-# section 3    
+    # section 3    
     if params["period0"].present?
       @item = []
       @local_id = 1
@@ -507,6 +507,122 @@ class ConservationsController < ApplicationController
     end
   end
   
+  def snow_prefix(id,code)
+    {
+      id: id,
+      "rec_flag"=>1, 
+      code: code,
+      # proc: 21,
+      # period: 1,
+      # pkind: 10
+
+    }
+  end
+  def terrain_type(id,value,packet_id)
+    {
+      id: id,
+      code: 8192,
+      value: value,
+      block: packet_id,
+      "rec_flag" => 4
+    }
+  end
+  def snow_event_date(event_date)
+    report_date = params['report_date']
+    year = report_date[0,4]
+    if report_date[5,2].to_i<event_date[2,2].to_i
+      year = (report_date[0,4].to_i-1).to_s}
+    end
+    return "year-#{event_date[2,2]}-#{event_date[0,2]}"
+  end
+  def save_snow_data
+    # `34622 15015 10060 21600 30100 71301=`
+    if params['telegram'].present?
+      @item = []
+      @local_id = 1
+      packet_id = 1
+      groups = params['telegram'].[12..-2].split(' ')
+      groups.each{|g|
+        case g[0]
+          when '1' # снег и лед в поле
+            if g[1,3] != '///'
+              @item << snow_prefix(@local_id,366092)
+              @local_id += 1
+              @item << terrain_type(@local_id,1,packet_id)
+              @local_id += 1
+              value = "#{g[1]}.#{g[2,2]}"
+              @item << {id: @local_id, packet: packet_id, code:13013, value: value} # высота снежного покрова в поле 1xxx.
+              if groups[1][0]='2' # group2
+                if groups[1][1,2]!='//' 
+                  @local_id+=1
+                  @item << {id: @local_id, packet: packet_id, code:13117, value: groups[1][1,2]+'0'} # плотность снега в поле 2xx..
+                end
+                if groups[1][3,2]!='//' 
+                  @local_id+=1
+                  @item << {id: @local_id, packet: packet_id, code:13115, value: '0.0'+groups[1][3,2]} # толщина ледяной корки в поле 2..xx
+                end
+              end
+              @local_id+=1
+              packet_id=@local_id
+            end
+            if g[4] != '/'
+              @item << snow_prefix(@local_id,366091)
+              @local_id += 1
+              @item << terrain_type(@local_id,1,packet_id)
+              @local_id += 1
+              @item << {id: @local_id, packet: packet_id, code:20192, value: g[4]+'0'} # степень покрытости ледяной коркой почвы в поле 1...x
+              i = telegram.index(' 3')
+              if !i.nil?
+                if telegram[i+5]!='/'
+                  @local_id+=1
+                  @item << {id: @local_id, packet: packet_id, code:20193, value: telegram[i+5]} # состояние почвы в поле 3...х
+                end
+              end
+              @local_id+=1
+              packet_id=@local_id
+            end
+          when '3'
+            if g[1,3] != '///'
+              @item << snow_prefix(@local_id,366093)
+              @local_id += 1
+              @item << terrain_type(@local_id,1,packet_id)
+              @local_id += 1
+              @item << {id: @local_id, packet: packet_id, code:13011, value: g[1,3]} # общий запас воды в снежном покрове в поле 3xxx.
+              @local_id+=1
+              packet_id=@local_id
+            end
+          when '7' # дата образования сн. покр. в поле
+            @item << snow_prefix(@local_id,366094)
+            @local_id += 1
+            @item << terrain_type(@local_id,1,packet_id)
+            @local_id += 1
+            @item << {id: @local_id, packet: packet_id, code:13013, value: snow_event_date(g[1,4])}
+            @local_id+=1
+            packet_id=@local_id
+          # when '8' # дата образования сн. покр. в лесу
+          when '9' # дата схода сн. покр. в поле
+            @item << snow_prefix(@local_id,366095)
+            @local_id += 1
+            @item << terrain_type(@local_id,1,packet_id)
+            @local_id += 1
+            @item << {id: @local_id, packet: packet_id, code:13013, value: snow_event_date(g[1,4])}
+            @local_id+=1
+            packet_id=@local_id
+          # when '0' # дата схода сн. покр. в лесу
+        end
+      }
+    end
+    Rails.logger.debug("My object+++++++++++++++++: #{@item.inspect}")
+    message = {user: 'test', pass: 'test', report: {station: params['hydroPostCode'], "meas_time_utc" => Time.now.strftime("%Y-%m-%d")+'T05:00', "syn_hour_utc"=>'05:00'},
+      'DataList':{item: @item}}
+    response_snow = client.call(:set_data, message: message)
+    if (response_snow.success?)
+      save_stats = {response: response_snow.body[:set_data_response]
+    end
+    Rails.logger.debug("My object+++++++++++++++++: #{save_stats.inspect}")
+    render json: save_stats #{response: save_stats}
+  end
+
   def save_hydro_storm
     @item = []
     @local_id = 1
