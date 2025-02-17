@@ -196,18 +196,18 @@ class ConservationsController < ApplicationController
       @item << {
         id: @local_id,
         "rec_flag" => 4,
-        code: 4194,
-        units: 'ccitt ia5',
-        value: params["wcDate"]+' '+params["wcHour"].rjust(2, '0')+':00:00',
+        code: 4002,
+        units: 'mon',
+        value: params["wcDate"][5,2].to_i,
         block: packet_id
       }
       @local_id += 1
       @item << {
         id: @local_id,
         "rec_flag" => 4,
-        code: 4002,
-        units: 'mon',
-        value: params["wcDate"][5,2],
+        code: 4194,
+        units: 'ccitt ia5',
+        value: params["wcDate"]+' '+params["wcHour"].rjust(2, '0')+':00:00',
         block: packet_id
       }
       @local_id += 1
