@@ -499,9 +499,9 @@ class ConservationsController < ApplicationController
         response_section22: response_section22.present? ? response_section22.body[:set_data_response]:nil,
         response_section3: response_section3.present? ? response_section3.body[:set_data_response]:nil
       }
-      if params['telegram'].present?
-        save_stats[:message] = save_telegram(params['telegram'])
-      end
+      # if params['telegram'].present?
+      #   save_stats[:message] = save_telegram(params['telegram'])
+      # end
       Rails.logger.debug("My object+++++++++++++++++: #{save_stats.inspect}")
       render json: {response: save_stats}
     end
@@ -716,7 +716,7 @@ class ConservationsController < ApplicationController
       param = {hydro_observation:
         {
           hydro_type: telegram[0,4], #'HHZZ',
-          hydro_post_id: posts.index(telegram[5,5].to_i),
+          # hydro_post_id: posts.index(telegram[5,5].to_i),
           hour_obs: telegram[13,2],
           date_observation: Time.now.strftime('%Y-%m-%d'),
           content_factor: telegram[15],
@@ -725,9 +725,10 @@ class ConservationsController < ApplicationController
         date: Time.now.strftime('%Y-%m-%d'),
         input_mode: "normal"
       }.to_json
+      Rails.logger.debug("My object+++++++++++++++++>>>>>>>>>>>>>>>>: #{http.inspect}")
       req.body = param
       res = http.request(req)
-      # Rails.logger.debug("My object+++++++++++++++++: #{res.body}")
+      # Rails.logger.debug("My object+++++++++++++++++<<<<<<<<<<<<<<<<: #{res.body}")
       return JSON.parse(res.body)["errors"][0]
       # return "Done"
     end
