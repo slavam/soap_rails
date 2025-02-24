@@ -210,9 +210,9 @@ class ConservationsController < ApplicationController
         value: params["wcDate"]+' '+params["wcHour"].rjust(2, '0')+':00:00',
         block: packet_id
       }
-      @local_id += 1
-      packet_id = @local_id
-      @item << {id: @local_id,"rec_flag" => 1,code: 360109}
+      # @local_id += 1
+      # packet_id = @local_id
+      # @item << {id: @local_id,"rec_flag" => 1,code: 360109}
       @local_id += 1
       @item << {
         id: @local_id,
