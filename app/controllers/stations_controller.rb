@@ -10,6 +10,7 @@ class StationsController < ApplicationController
   def meteostations
     stations = Station.new
     @meteostations = stations.meteostations
+    # StationMailer.test_email.deliver_now
     respond_to do |format|
       format.html
       format.json do

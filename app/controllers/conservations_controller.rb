@@ -183,10 +183,12 @@ class ConservationsController < ApplicationController
     end
 
     Rails.logger.debug("My object+++++++++++++++++: #{params.inspect}")
-    client = Savon.client(wsdl: 'http://10.54.1.30:8650/wsdl', env_namespace: 'SOAP-ENV')
+    client = Savon.client(wsdl: 'http://10.54.1.31:8650/wsdl', env_namespace: 'SOAP-ENV')
+    client2 = Savon.client(wsdl: 'http://10.54.1.32:8650/wsdl', env_namespace: 'SOAP-ENV')
     message = {user: 'test', pass: 'test', report: {station: params['hydroPostCode'], "meas_time_utc" => Time.now.strftime("%Y-%m-%d")+'T05:00', "syn_hour_utc"=>'05:00'},
       'DataList':{item: @item}}
     response = client.call(:set_data, message: message)
+    response2 = client2.call(:set_data, message: message)
     if params["wcDate"].present?
       @item = []
       @local_id = 1
@@ -252,6 +254,7 @@ class ConservationsController < ApplicationController
       message = {user: 'test', pass: 'test', report: {station: params['hydroPostCode'], "meas_time_utc" => params["wcDate"]+'T'+(params["wcHour"].to_i-3).to_s.rjust(2, '0')+':00:00', "syn_hour_utc"=>"#{params["wcHour"].to_i-3}:00"},
         'DataList':{item: @item}}
       response_water_consumption = client.call(:set_data, message: message)
+      response2_water_consumption = client2.call(:set_data, message: message)
     end
       # section 2
 
@@ -320,6 +323,7 @@ class ConservationsController < ApplicationController
       message = {user: 'test', pass: 'test', report: {station: params['hydroPostCode'], "meas_time_utc" => params['obsDate21']+'T05:00', "syn_hour_utc"=>'05:00'},
         'DataList':{item: @item}}
       response_section21 = client.call(:set_data, message: message)
+      response2_section21 = client2.call(:set_data, message: message)
     end
     # section 22
     if params["obsDate22"].present?
@@ -387,6 +391,7 @@ class ConservationsController < ApplicationController
       message = {user: 'test', pass: 'test', report: {station: params['hydroPostCode'], "meas_time_utc" => params['obsDate22']+'T05:00', "syn_hour_utc"=>'05:00'},
         'DataList':{item: @item}}
       response_section22 = client.call(:set_data, message: message)
+      response2_section22 = client2.call(:set_data, message: message)
     end
     # section 3    
     if params["period0"].present?
@@ -452,6 +457,7 @@ class ConservationsController < ApplicationController
       message = {user: 'test', pass: 'test', report: {station: params['hydroPostCode'], "meas_time_utc" => Time.now.strftime("%Y-%m-%d")+'T05:00', "syn_hour_utc"=>'05:00'},
         'DataList':{item: @item}}
       response_section3 = client.call(:set_data, message: message)
+      response2_section3 = client2.call(:set_data, message: message)
       # if params['avgWc0'].present?
       #   @local_id+=1
       #   packet_id=@local_id
@@ -504,6 +510,8 @@ class ConservationsController < ApplicationController
       # end
       Rails.logger.debug("My object+++++++++++++++++: #{save_stats.inspect}")
       render json: {response: save_stats}
+    else
+      render json: {response: "Error"}
     end
   end
   
@@ -613,18 +621,22 @@ class ConservationsController < ApplicationController
         end
       }
     end
-    client = Savon.client(wsdl: 'http://10.54.1.30:8650/wsdl', env_namespace: 'SOAP-ENV')
+    client = Savon.client(wsdl: 'http://10.54.1.31:8650/wsdl', env_namespace: 'SOAP-ENV')
+    client2 = Savon.client(wsdl: 'http://10.54.1.32:8650/wsdl', env_namespace: 'SOAP-ENV')
     Rails.logger.debug("My object+++++++++++++++++: #{@item.inspect}")
     message = {user: 'test', pass: 'test', report: {station: params['source_code'], 
       "meas_time_utc" => "#{params['report_date']}T00:00:00",
       "syn_hour_utc"=>'00:00'},
       'DataList':{item: @item}}
     response_snow = client.call(:set_data, message: message)
-    if (response_snow.success?)
+    response_snow2 = client2.call(:set_data, message: message)
+    if (response_snow.success? && response_snow2.success?)
       save_stats = {response: response_snow.body[:set_data_response]}
+      Rails.logger.debug("My object+++++++++++++++++: #{save_stats.inspect}")
+      render json: save_stats #{response: save_stats}
+    else
+      render json: {response: "Error"}
     end
-    Rails.logger.debug("My object+++++++++++++++++: #{save_stats.inspect}")
-    render json: save_stats #{response: save_stats}
   end
 
   def save_hydro_storm
