@@ -182,7 +182,7 @@ class ConservationsController < ApplicationController
       }
     end
 
-    Rails.logger.debug("My object+++++++++++++++++: #{params.inspect}")
+    # Rails.logger.debug("My object+++++++++++++++++: #{params.inspect}")
     client = Savon.client(wsdl: 'http://10.54.1.31:8650/wsdl', env_namespace: 'SOAP-ENV')
     client2 = Savon.client(wsdl: 'http://10.54.1.32:8650/wsdl', env_namespace: 'SOAP-ENV')
     message = {user: 'test', pass: 'test', report: {station: params['hydroPostCode'], "meas_time_utc" => Time.now.strftime("%Y-%m-%d")+'T05:00', "syn_hour_utc"=>'05:00'},
@@ -407,12 +407,19 @@ class ConservationsController < ApplicationController
         @item << {id: @local_id, proc: 1, period: params['period0'], 
           code:13205, value: params['avgWl0'].to_f/100, block: packet_id, "rec_flag" => 3, pkind: 98}
       end
+      if params['minWl0'].present?
+        @local_id+=1
+        packet_id=@local_id
+        @item << Conservation::CBASE.merge(id: @local_id, code: 360101)
+        @local_id += 1
+        @item << {id: @local_id, value: params['minWl0'].to_f/100, code: 13205, "rec_flag" => 3, proc: 3, period: params['period0'].to_i, pkind: 98, block: packet_id}
+      end
       if params['maxWl0'].present?
         @local_id+=1
         packet_id=@local_id
         @item << {id: @local_id, code: 360101, "rec_flag"=>1, proc:2, period: params['period0'].to_i, pkind: 98}
         @local_id += 1
-        @item << {id: @local_id, value: params['maxWl0'].to_f/100, code: 13205, "rec_flag"=> 3, proc: 2, period: params['period0'].to_i, block: packet_id}
+        @item << {id: @local_id, value: params['maxWl0'].to_f/100, code: 13205, "rec_flag"=> 3, proc: 2, period: params['period0'].to_i, pkind: 98, block: packet_id}
         if params['mlDate0'].present?
           packet_id=@local_id
           @local_id += 1
@@ -433,27 +440,22 @@ class ConservationsController < ApplicationController
           end
         end
       end
-      if params['minWl0'].present?
-        @local_id+=1
-        packet_id=@local_id
-        @item << Conservation::CBASE.merge(id: @local_id, code: 360101)
-        @local_id += 1
-        @item << {id: @local_id, value: params['minWl0'].to_f/100, code: 13205, "rec_flag" => 3, proc: 3, period: params['period0'].to_i, block: packet_id}
-      end
+      
       packet_id=@local_id
       @local_id += 1
       @item << {
         id: @local_id, 
         value: params['period0'].to_i, 
-        bseq: 360101,
+        bseq: 360102,
         code: 4193,
         units: "code table",
         "rec_flag" => 4,
+        proc: 3,
         period: params['period0'].to_i,
         pkind: 98,
         block: packet_id
       }
-      Rails.logger.debug("My object+++++++++++++++++: #{@item.inspect}")
+      # Rails.logger.debug("My object+++++++++++++++++: #{@item.inspect}")
       message = {user: 'test', pass: 'test', report: {station: params['hydroPostCode'], "meas_time_utc" => Time.now.strftime("%Y-%m-%d")+'T05:00', "syn_hour_utc"=>'05:00'},
         'DataList':{item: @item}}
       response_section3 = client.call(:set_data, message: message)
@@ -508,7 +510,7 @@ class ConservationsController < ApplicationController
       # if params['telegram'].present?
       #   save_stats[:message] = save_telegram(params['telegram'])
       # end
-      Rails.logger.debug("My object+++++++++++++++++: #{save_stats.inspect}")
+      # Rails.logger.debug("My object+++++++++++++++++: #{save_stats.inspect}")
       render json: {response: save_stats}
     else
       render json: {response: "Error"}
@@ -623,7 +625,7 @@ class ConservationsController < ApplicationController
     end
     client = Savon.client(wsdl: 'http://10.54.1.31:8650/wsdl', env_namespace: 'SOAP-ENV')
     client2 = Savon.client(wsdl: 'http://10.54.1.32:8650/wsdl', env_namespace: 'SOAP-ENV')
-    Rails.logger.debug("My object+++++++++++++++++: #{@item.inspect}")
+    # Rails.logger.debug("My object+++++++++++++++++: #{@item.inspect}")
     message = {user: 'test', pass: 'test', report: {station: params['source_code'], 
       "meas_time_utc" => "#{params['report_date']}T00:00:00",
       "syn_hour_utc"=>'00:00'},
@@ -632,7 +634,7 @@ class ConservationsController < ApplicationController
     response_snow2 = client2.call(:set_data, message: message)
     if (response_snow.success? && response_snow2.success?)
       save_stats = {response: response_snow.body[:set_data_response]}
-      Rails.logger.debug("My object+++++++++++++++++: #{save_stats.inspect}")
+      # Rails.logger.debug("My object+++++++++++++++++: #{save_stats.inspect}")
       render json: save_stats #{response: save_stats}
     else
       render json: {response: "Error"}
@@ -711,39 +713,39 @@ class ConservationsController < ApplicationController
     response = client.call(:set_data, message: message)
     if response.success?
       save_stats = {response: response.body[:set_data_response]}
-      Rails.logger.debug("My object+++++++++++++++++: #{save_stats.inspect}")
+      # Rails.logger.debug("My object+++++++++++++++++: #{save_stats.inspect}")
       render json: {response: save_stats}
     else
       render json: {response: "Error"}
     end
   end
     # HHZZ 83048 19082 10130 20000 96606 10130 20480 31154 40034 51810=
-    def save_telegram telegram
-      posts = [nil,83028,83035,83056,83060,83068,83074,83083,83478,83040,83036,83045,83050,83048,83026,78301,78413,78421,78427,78430,78434,78436]
-      # uri = URI('http://localhost:3002/hydro_observations/create_hydro_telegram')
-      # uri = URI('http://31.133.32.14:8080/hydro_observations/create_hydro_telegram')
-      uri = URI('http://10.54.1.6:8080/hydro_observations/create_hydro_telegram')
-      http = Net::HTTP.new(uri.host, uri.port)
-      req = Net::HTTP::Post.new(uri.path, initheader = {'Content-Type' =>'application/json'})
-      param = {hydro_observation:
-        {
-          hydro_type: telegram[0,4], #'HHZZ',
-          # hydro_post_id: posts.index(telegram[5,5].to_i),
-          hour_obs: telegram[13,2],
-          date_observation: Time.now.strftime('%Y-%m-%d'),
-          content_factor: telegram[15],
-          telegram: telegram[5..]
-        },
-        date: Time.now.strftime('%Y-%m-%d'),
-        input_mode: "normal"
-      }.to_json
-      Rails.logger.debug("My object+++++++++++++++++>>>>>>>>>>>>>>>>: #{http.inspect}")
-      req.body = param
-      res = http.request(req)
-      # Rails.logger.debug("My object+++++++++++++++++<<<<<<<<<<<<<<<<: #{res.body}")
-      return JSON.parse(res.body)["errors"][0]
-      # return "Done"
-    end
+    # def save_telegram telegram
+    #   posts = [nil,83028,83035,83056,83060,83068,83074,83083,83478,83040,83036,83045,83050,83048,83026,78301,78413,78421,78427,78430,78434,78436]
+    #   # uri = URI('http://localhost:3002/hydro_observations/create_hydro_telegram')
+    #   # uri = URI('http://31.133.32.14:8080/hydro_observations/create_hydro_telegram')
+    #   uri = URI('http://10.54.1.6:8080/hydro_observations/create_hydro_telegram')
+    #   http = Net::HTTP.new(uri.host, uri.port)
+    #   req = Net::HTTP::Post.new(uri.path, initheader = {'Content-Type' =>'application/json'})
+    #   param = {hydro_observation:
+    #     {
+    #       hydro_type: telegram[0,4], #'HHZZ',
+    #       # hydro_post_id: posts.index(telegram[5,5].to_i),
+    #       hour_obs: telegram[13,2],
+    #       date_observation: Time.now.strftime('%Y-%m-%d'),
+    #       content_factor: telegram[15],
+    #       telegram: telegram[5..]
+    #     },
+    #     date: Time.now.strftime('%Y-%m-%d'),
+    #     input_mode: "normal"
+    #   }.to_json
+    #   # Rails.logger.debug("My object+++++++++++++++++>>>>>>>>>>>>>>>>: #{http.inspect}")
+    #   req.body = param
+    #   res = http.request(req)
+    #   # Rails.logger.debug("My object+++++++++++++++++<<<<<<<<<<<<<<<<: #{res.body}")
+    #   return JSON.parse(res.body)["errors"][0]
+    #   # return "Done"
+    # end
   private
     def groups15_16(packet_id,id,value,code)
       ret = {
