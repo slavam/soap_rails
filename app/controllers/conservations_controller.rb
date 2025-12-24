@@ -151,20 +151,28 @@ class ConservationsController < ApplicationController
       precipitation_and_duration_items(val,@interval[params["durationPrecipitation"].to_i])
       
     end
-    if params["ip0"].present?
+    if params["ip"].present?
       @local_id+=1
       packet_id=@local_id
       @item<< Conservation::CBASE.merge(id: @local_id, code: 360110)
-      ip_keys = params.keys.grep(/ip/)
-      ip_keys.each{|k| 
+      ipChar = params['ip'] #.keys.grep(/^ip$/)
+      ipAddon = params['ii']
+      ipChar.each_with_index do |val, i|  
         @local_id += 1
-        @item << groups15_16(packet_id,@local_id,params[k],13200)
-      }
-      ii_keys = params.keys.grep(/ii/)
-      ii_keys.each{|k| 
+        ip_id=@local_id
+        @item << groups15_16(packet_id,@local_id,val,13200)
         @local_id += 1
-        @item << groups15_16_intens(packet_id,@local_id,params[k],13202)
-      }
+        if ipAddon[i].to_i>10
+          @item << groups15_16(packet_id,@local_id,ipAddon[i],13200)
+        else
+          @item << groups15_16_intens(ip_id,@local_id,ipAddon[i],13202)
+        end
+      end
+      # ii_keys = params.keys.grep(/^ii[0-4]$/)
+      # ii_keys.each{|k| 
+      #   @local_id += 1
+      #   @item << groups15_16_intens(packet_id,@local_id,params[k],13202)
+      # }
     end
     if params["wb0"].present?
       @local_id+=1
@@ -627,8 +635,8 @@ class ConservationsController < ApplicationController
     client2 = Savon.client(wsdl: 'http://10.54.1.32:8650/wsdl', env_namespace: 'SOAP-ENV')
     # Rails.logger.debug("My object+++++++++++++++++: #{@item.inspect}")
     message = {user: 'test', pass: 'test', report: {station: params['source_code'], 
-      "meas_time_utc" => "#{params['report_date']}T00:00:00",
-      "syn_hour_utc"=>'00:00'},
+      "meas_time_utc" => "#{params['report_date']}T05:00:00",
+      "syn_hour_utc"=>'05:00'},
       'DataList':{item: @item}}
     response_snow = client.call(:set_data, message: message)
     response_snow2 = client2.call(:set_data, message: message)
