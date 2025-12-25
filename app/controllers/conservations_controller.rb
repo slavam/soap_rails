@@ -155,8 +155,8 @@ class ConservationsController < ApplicationController
       @local_id+=1
       packet_id=@local_id
       @item<< Conservation::CBASE.merge(id: @local_id, code: 360110)
-      ipChar = params['ip'] #.keys.grep(/^ip$/)
-      ipAddon = params['ii']
+      ipChar = params['ip'].split(',')
+      ipAddon = params['ii'].split(',')
       ipChar.each_with_index do |val, i|  
         @local_id += 1
         ip_id=@local_id
@@ -168,11 +168,6 @@ class ConservationsController < ApplicationController
           @item << groups15_16_intens(ip_id,@local_id,ipAddon[i],13202)
         end
       end
-      # ii_keys = params.keys.grep(/^ii[0-4]$/)
-      # ii_keys.each{|k| 
-      #   @local_id += 1
-      #   @item << groups15_16_intens(packet_id,@local_id,params[k],13202)
-      # }
     end
     if params["wb0"].present?
       @local_id+=1
