@@ -169,20 +169,33 @@ class ConservationsController < ApplicationController
         end
       end
     end
-    if params["wb0"].present?
+    if params["wb"].present?
       @local_id+=1
       packet_id=@local_id
       @item << Conservation::CBASE.merge(id: @local_id, code: 360111)
-      wb_keys = params.keys.grep(/wb/)
-      wb_keys.each{|k| 
+      wbChar = params['wb'].split(',')
+      wbAddon = params['wbi'].split(',')
+      wbChar.each_with_index do |val, i|
         @local_id += 1
-        @item << groups15_16(packet_id,@local_id,params[k],13201)
-      }
-      wi_keys = params.keys.grep(/wi/)
-      wi_keys.each{|k| 
+        wb_id=@local_id
+        @item << groups15_16(packet_id,@local_id,val,13201)
         @local_id += 1
-        @item << groups15_16_intens(packet_id,@local_id,params[k],13203)
-      }
+        if wbAddon[i].to_i>10 || wbAddon[i].to_i==0
+          @item << groups15_16(packet_id,@local_id,wbAddon[i],13201)
+        else
+          @item << groups15_16_intens(wb_id,@local_id,wbAddon[i],13203)
+        end
+      end
+      # wb_keys = params.keys.grep(/wb/)
+      # wb_keys.each{|k| 
+      #   @local_id += 1
+      #   @item << groups15_16(packet_id,@local_id,params[k],13201)
+      # }
+      # wi_keys = params.keys.grep(/wi/)
+      # wi_keys.each{|k| 
+      #   @local_id += 1
+      #   @item << groups15_16_intens(packet_id,@local_id,params[k],13203)
+      # }
     end
 
     # Rails.logger.debug("My object+++++++++++++++++: #{params.inspect}")
